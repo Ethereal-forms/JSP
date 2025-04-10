@@ -38,12 +38,14 @@ std::vector<Action>  N7(std::vector<int> block) {
 
 void tabusearch::search(Schedule& sc) {
     int iter = 0;
-    while (iter<10000) {
+    while (iter<100000000) {
         int block_id;
         Action ac = find_move(sc,block_id);
         update(sc,ac,block_id);
-        std::cout<<"iter  "<<sc.makespan<<std::endl;
+        if (iter%10000==0)
+            std::cout<<"iter  "<<sc.makespan<<std::endl;
         iter++;
+
     }
 
 }
