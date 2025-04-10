@@ -35,6 +35,7 @@ public:
     explicit Schedule(const Instance &instance) noexcept : operation_list(instance), machine_operation(instance), makespan(0) {
         graph = generate_random_initial_solution(instance);
         calculate_time_info();
+        //critical_path();
         update_critical_blocks();
     }
 
@@ -43,14 +44,17 @@ public:
     bool is_critical_operation(int operation_id);
     void calculate_time_info();
     void update_critical_blocks();
+    void critical_path();
 
     OperationList operation_list;
     MachineOperation machine_operation;
     Graph graph;
 
     int makespan;
+    std::vector<std::vector<int>> path;
     std::vector<OperationTimeInfo> time_info;
     std::vector<std::vector<int>> critical_blocks;
+
 };
 
 inline bool Schedule::is_critical_operation(int operation_id) {

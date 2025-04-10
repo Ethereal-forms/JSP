@@ -2,7 +2,7 @@
 // Created by qiming on 25-3-31.
 //
 #include "schedule.h"
-
+#include <stack>
 void Schedule::calculate_time_info() {
     int n = graph.node_num;
     auto forward_queue = graph.topological_sort(false);
@@ -110,3 +110,86 @@ void Schedule::export_to_csv(const std::string &filename) {
     file.close();
     std::clog << "Schedule exported to " << filename << std::endl;
 }
+
+// void Schedule::critical_path() {
+//     path.clear();
+//     for (int i=0 ; i<graph.first_job_operation.size() ; ++i) {
+//         std::stack<int> operator_stack;
+//         std::stack<std::vector<int>> path_stack;
+//         operator_stack.push(graph.first_job_operation[i]);
+//         std::vector<int> temp_path;
+//         temp_path.push_back(graph.first_job_operation[i]);
+//         path_stack.push(temp_path);
+//         std::stack<int> length;
+//         length.push(operation_list[graph.first_job_operation[i]].time);
+//         while (!operator_stack.empty()) {
+//             int curr_operator = operator_stack.top();
+//             operator_stack.pop();
+//             std::vector<int> curr_path = path_stack.top();
+//             path_stack.pop();
+//             int curr_path_length = length.top();
+//             length.pop();
+//             //curr_path.push_back(curr_operator);
+//             if ( graph.operation_edges[curr_operator] != graph.node_num-1) {
+//                 operator_stack.push(graph.operation_edges[curr_operator]);
+//                 std::vector<int> t1 = curr_path;
+//                 t1.push_back(graph.operation_edges[curr_operator]);
+//                 path_stack.push(t1);
+//                 int t1_length = curr_path_length;
+//                 t1_length += operation_list[graph.operation_edges[curr_operator]].time;
+//                 length.push(t1_length);
+//             }
+//             if (graph.machine_edges[curr_operator] != -1) {
+//                 operator_stack.push(graph.machine_edges[curr_operator]);
+//                 std::vector<int> t2 = curr_path;
+//                 t2.push_back(graph.machine_edges[curr_operator]);
+//                 path_stack.push(t2);
+//                 int t2_length = curr_path_length;
+//                 t2_length += operation_list[graph.machine_edges[curr_operator]].time;
+//                 length.push(t2_length);
+//             }
+//             if (graph.operation_edges[curr_operator] == graph.node_num-1 &&graph.machine_edges[curr_operator] == -1) {
+//                 if (curr_path_length==makespan)
+//                     path.push_back(curr_path);
+//             }
+//         }
+//     }
+//     for (int i=0;i<path.size();++i) {
+//         for (int j=0;j<path[i].size();++j) {
+//             if (j!=path[i].size()-1) {
+//                 std::cout<<path[i][j]<<" --> ";
+//             }else {
+//                 std::cout<<path[i][j];
+//             }
+//         }
+//         std::cout<<std::endl;
+//     }
+//
+// }
+//
+// void Schedule::update_critical_blocks() {
+//     critical_blocks.clear();
+//     std::vector<int> block;
+//     for (int i = 0; i < path.size(); ++i) {
+//         block.clear();
+//         block.push_back(path[i][0]);
+//         for (int j = 1; j < path[i].size(); ++j) {
+//                if (operation_list[path[i][j-1]].machine_id == operation_list[path[i][j]].machine_id) {
+//                    block.push_back(path[i][j]);
+//                }else {
+//                    if (block.size() > 1) {
+//                        critical_blocks.push_back(block);
+//                    }
+//                    block.clear();
+//                    block.push_back(path[i][j]);
+//                }
+//         }
+//     }
+//
+//     for (int i = 0; i < critical_blocks.size(); ++i) {
+//         for (int j = 0; j < critical_blocks[i].size(); ++j) {
+//             std::cout << critical_blocks[i][j] << " ";
+//         }
+//         std::cout << std::endl;
+//     }
+// }

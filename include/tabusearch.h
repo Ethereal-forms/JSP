@@ -145,6 +145,7 @@ public:
     void search(Schedule& sc);
     Action find_move(Schedule& sc,int& _id);
     void update(Schedule& sc,Action action,int block_id);
+    bool action_is_legal(Action action,const std::vector<int>& block,Schedule& sc);
 
 };
 

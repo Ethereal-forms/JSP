@@ -3,6 +3,7 @@
 //
 // ----4 5 6 8 7 9-----
 #include "tabusearch.h"
+#include "RandomGenerator.h"
 
 #include <bits/fs_fwd.h>
 //u 移动到 v 之后 Q[v] >= Q[J_SUC[u]]
@@ -37,7 +38,7 @@ std::vector<Action>  N7(std::vector<int> block) {
 
 void tabusearch::search(Schedule& sc) {
     int iter = 0;
-    while (iter<1000) {
+    while (iter<10000) {
         int block_id;
         Action ac = find_move(sc,block_id);
         update(sc,ac,block_id);
@@ -46,9 +47,30 @@ void tabusearch::search(Schedule& sc) {
     }
 
 }
-//-----7 4 8 9 6 2-----
+bool tabusearch::action_is_legal(Action action,const std::vector<int>& block,Schedule& sc)  {
+    if (action.back_insert == 1) {
+        // u 插入 v 后
+        int operator_v = block[action.v];
+        int operator_u = block[action.u];
+        int operator_u_suc = sc.graph.operation_edges[operator_u];
+        if (sc.time_info[operator_v].end_time < sc.time_info[operator_u_suc].backward_path_length) {
+            return false;
+        }
+
+    }else {
+        // u 插入 v 前
+        int operator_v = block[action.v];
+        int operator_u = block[action.u];
+        int operator_u_pre = sc.graph.reverse_operation_edges[operator_u];
+        if (sc.time_info[operator_v].forward_path_length < sc.time_info[operator_u_pre].forward_path_length) {
+            return false;
+        }
+    }
+    return true;
+}
+
 Action tabusearch::find_move(Schedule& sc,int& _id) {
-    int best_makespan = sc.makespan;
+    int best_makespan = INT_MAX;
     std::vector<int> block_id;
     std::vector<Action> best_move;
     for (int i = 0; i<sc.critical_blocks.size(); ++i) {
@@ -59,34 +81,16 @@ Action tabusearch::find_move(Schedule& sc,int& _id) {
             Graph graph = sc.graph;
             int pre = graph.reverse_machine_edges[block[0]];
             int suc = graph.machine_edges[block[block.size()-1]];
-            int start;
             Action action = move_set[j];
             //判断序列是否符合合法
-            if (action.back_insert == 1) {
-                // u 插入 v 后
-                int operator_v = block[action.v];
-                int operator_u = block[action.u];
-                int operator_u_suc = sc.graph.operation_edges[operator_u];
-                if (sc.time_info[operator_v].backward_path_length < sc.time_info[operator_u_suc].backward_path_length) {
-                    continue;
-                }
-            }else {
-                // u 插入 v 前
-                int operator_v ;
-                if (action.v>0)
-                    operator_v = block[action.v-1];
-                else if(action.v==0)
-                    operator_v = sc.graph.reverse_operation_edges[block[0]];
-
-                int operator_u = block[action.u];
-                int operator_u_suc = sc.graph.operation_edges[operator_u];
-                if (sc.time_info[operator_v].backward_path_length < sc.time_info[operator_u_suc].backward_path_length) {
-                    continue;
-                }
+            int start;
+            int end;
+            if (!action_is_legal(action,block,sc)) {
+                continue;
             }
 
-
-
+            start = std::min(action.v, action.u);
+            end = std::max(action.v, action.u);
             if (action.back_insert == 1) {
                 //后插 u 插入 v 后
                 if (action.v == block.size()-1) {
@@ -116,6 +120,10 @@ Action tabusearch::find_move(Schedule& sc,int& _id) {
              *.......
              *.......
              */
+            std::vector<int> temp = block;
+            int tem = block[end];
+            block.assign(block.begin()+start,block.begin()+end);
+            block.push_back(tem);
             std::vector<int> R(block.size(),0);
             std::vector<int> Q(block.size(),0);
 
@@ -152,6 +160,7 @@ Action tabusearch::find_move(Schedule& sc,int& _id) {
                     Q[n-k-1] = std::max(sc.time_info[job_suc].backward_path_length,Q[n-k]) + sc.operation_list[operator_qid].time;
                 }
             }
+            block = temp;
             int makespan = R[0] + Q[0];
             for (int k = 1; k < block.size(); ++k) {
                 if (R[k] + Q[k] > makespan) makespan = R[k] + Q[k];
@@ -170,7 +179,7 @@ Action tabusearch::find_move(Schedule& sc,int& _id) {
         }
     }
 
-    int random = 0;
+    int random = RAND_INT(best_move.size());
     _id = block_id[random];
     return best_move[random];
 
@@ -179,15 +188,7 @@ Action tabusearch::find_move(Schedule& sc,int& _id) {
 
 void tabusearch::update(Schedule& sc,Action ac,int block_id) {
 
-    // //
-    // int pre_machine = sc.graph.reverse_machine_edges[29];
-    // int suc_machine = sc.graph.machine_edges[16];
-    // sc.graph.machine_edges[16] = 29;
-    // sc.graph.machine_edges[29] = suc_machine;
-    // sc.graph.reverse_machine_edges[16] = pre_machine;
-    // sc.graph.reverse_machine_edges[29] = 16;
-    // sc.graph.machine_edges[pre_machine] = 16;
-    // sc.graph.reverse_machine_edges[suc_machine] = 29;
+
     std::vector<int> block = sc.critical_blocks[block_id];
     int operator_u = block[ac.u];
     int operator_v = block[ac.v];
@@ -226,56 +227,8 @@ void tabusearch::update(Schedule& sc,Action ac,int block_id) {
 
         sc.graph.reverse_machine_edges[operator_u] = operator_v_pre;
     }
-    // if (ac.back_insert == 1) {
-    //     //u 插入到 v 后
-    //     if (ac.u == 0) {
-    //         if (pre!=-1) {
-    //             sc.graph.machine_edges[pre] = block[ac.u+1];
-    //             sc.graph.reverse_machine_edges[block[ac.u+1]] = pre;
-    //         }
-    //         else {
-    //             sc.graph.reverse_machine_edges[block[ac.u+1]] = -1;
-    //         }
-    //     }else {
-    //         sc.graph.machine_edges[block[ac.u-1]] = block[ac.u+1];
-    //         sc.graph.reverse_machine_edges[block[ac.u+1]] = block[ac.u-1];
-    //     }
-    //     sc.graph.machine_edges[operator_u] = sc.graph.machine_edges[operator_v];
-    //     sc.graph.machine_edges[operator_v] = operator_u;
-    //     sc.graph.reverse_machine_edges[operator_u] = operator_v;
-    //     if (ac.v == block.size()-1) {
-    //         if (suc != -1) {
-    //             sc.graph.reverse_machine_edges[suc] = operator_u;
-    //         }
-    //     }else {
-    //         sc.graph.reverse_machine_edges[block[ac.v+1]] = operator_u;
-    //     }
-    // }else {
-    //     // u 插入到 v 之前
-    //     if (ac.v == 0) {
-    //         int operator_v_pre = sc.graph.reverse_machine_edges[operator_v];
-    //         if (operator_v_pre != -1) {
-    //             sc.graph.machine_edges[operator_v_pre] = operator_u;
-    //             sc.graph.reverse_machine_edges[operator_u] = operator_v_pre;
-    //         }else {
-    //             sc.graph.reverse_machine_edges[operator_u] = -1;
-    //         }
-    //         sc.graph.machine_edges[block[ac.u-1]] = sc.graph.machine_edges[operator_u];
-    //         sc.graph.machine_edges[operator_u] = operator_v;
-    //         sc.graph.reverse_machine_edges[operator_v] = operator_u;
-    //         if (ac.u == block.size()-1) {
-    //             if (suc != -1) {
-    //                 sc.graph.reverse_machine_edges[suc] = block[ac.u-1];
-    //             }
-    //         }else {
-    //             sc.graph.reverse_machine_edges[block[ac.u+1]] = block[ac.u-1];
-    //             sc.graph.machine_edges[block[ac.u-1]] = block[ac.u+1];
-    //         }
-    //     }
-    //
-    // }
     sc.calculate_time_info();
     sc.update_critical_blocks();
-    sc.export_to_csv("../../output/jssp_schedule.csv");
+    //sc.export_to_csv("../../output/jssp_schedule.csv");
 
 }
